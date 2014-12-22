@@ -1,0 +1,8 @@
+{
+    "name": "Enable devicelock method switch",
+    "description": "Proper patch enabling numeric - alphanumeric devicelock switch with no bug.",
+    "category": "settings",
+    "infos": {
+        "maintainer": "coderus"
+    }
+}

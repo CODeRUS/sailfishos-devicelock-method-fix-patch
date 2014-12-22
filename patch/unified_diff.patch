@@ -1,0 +1,101 @@
+commit 0e4ea872723bb539425ae52ae16b2ef6095f7796
+Author: CODeRUS <coderusinbox@gmail.com>
+Date:   Mon Dec 22 04:36:01 2014 +0500
+
+    Workaround for enabling alphanumeric devicelock in u10
+
+diff --git a/usr/share/jolla-settings/pages/devicelock/devicelock.qml b/usr/share/jolla-settings/pages/devicelock/devicelock.qml
+index 4353a23..492c6c1 100644
+--- a/usr/share/jolla-settings/pages/devicelock/devicelock.qml
++++ b/usr/share/jolla-settings/pages/devicelock/devicelock.qml
+@@ -16,9 +16,24 @@ Page {
+         onMaximumAttemptsChanged: {
+             attemptsSlider.value = lockSettings.maximumAttempts != -1 ? lockSettings.maximumAttempts : attemptsSlider.maximumValue
+         }
++        property bool digitsOnly: lockSettings.codeCurrentIsDigitOnly
++        function setDigitsOnly(code, value) {
++            setCurrentIsDigitOnly(code, value)
++            digitsOnly = value
++        }
++        property bool keyboardInput: lockSettings.codeInputIsKeyboard
++        function setKeyboardInput(code, value) {
++            setInputIsKeyboard(code, value)
++            keyboardInput = value
++        }
+     }
+     onStatusChanged: {
+-        if (status === PageStatus.Deactivating) devicelock.cachedPin = ""
++        if (status === PageStatus.Deactivating) {
++            if (devicelock.cachedPin) {
++                lockSettings.setCurrentIsDigitOnly(devicelock.cachedPin, lockSettings.digitsOnly)
++                devicelock.cachedPin = ""
++            }
++        }
+     }
+ 
+     SilicaFlickable {
+@@ -188,22 +203,24 @@ Page {
+                 text: qsTrId("settings_devicelock-la-digit_only_keypad")
+                 // [TMP HOTFIX] do not permit alphanum code to new users until proper fix is in place. Contributes to jb#24201
+                 // Those who already have enabled alphanumeric code right after update10, and want to revert back to numpad, a cmdline tool can be provided
+-                visible: false // devicelock.isSet
++                visible: devicelock.isSet
+                 automaticCheck: false
+-                checked: !lockSettings.codeInputIsKeyboard
++                checked: !lockSettings.keyboardInput
+                 //: This description how to get digit only keypad back is showed when user has defined non-digit lockcode and he has qwerty enabled
+                 //% "You can only enable when your lock code is digit only"
+-                description: !lockSettings.codeCurrentIsDigitOnly ? qsTrId("settings_devicelock-la-busy-description") : ""
++                description: !lockSettings.digitsOnly ? qsTrId("settings_devicelock-la-busy-description") : ""
+                 onClicked: {
+-                    if (devicelock.isSet && (lockSettings.codeCurrentIsDigitOnly || checked)) {
++                    if (devicelock.isSet && (lockSettings.digitsOnly || checked)) {
+                         if (devicelock.cachedPin) {
+-                            lockSettings.setInputIsKeyboard(devicelock.cachedPin, checked)
++                            lockSettings.setKeyboardInput(devicelock.cachedPin, checked)
+                         } else {
+                             var d = pageStack.push(pinInputComponent, {requestSignalOnly: true})
+                             d.lockCodeConfirmed.connect(function(enteredPin) {
+                                 // break binding on purpose to avoid vkb open animation on settings switch
+                                 d.showDigitPad = d.showDigitPad
+-                                lockSettings.setInputIsKeyboard(enteredPin, checked)
++                                if (lockSettings.digitsOnly || checked) {
++                                    lockSettings.setKeyboardInput(enteredPin, checked)
++                                }
+                             })
+                         }
+                     }
+@@ -236,10 +253,12 @@ Page {
+                 onClicked: {
+                     if (devicelock.isSet) {
+                         if (devicelock.cachedPin) {
++                            lockSettings.setKeyboardInput(devicelock.cachedPin, false)
+                             devicelock.clearCode(devicelock.cachedPin)
+                         } else {
+                             var d = pageStack.push(pinInputComponent, {requestSignalOnly: true})
+                             d.lockCodeConfirmed.connect(function(enteredPin) {
++                                lockSettings.setKeyboardInput(enteredPin, false)
+                                 devicelock.clearCode(enteredPin)
+                                 devicelock.cachedPin = ""
+                             })
+@@ -298,7 +317,11 @@ Page {
+                         devicelock.setCode(_confirmedPin, enteredPin)
+                         devicelock.cachedPin = enteredPin
+                         if (setup) lockSettings.setAutomaticLocking(enteredPin, "10")
+-                        lockSettings.setCurrentIsDigitOnly(enteredPin, /^\d+$/.test(enteredPin))
++                        var digitsOnly = /^\d+$/.test(enteredPin)
++                        if (!digitsOnly && !lockSettings.keyboardInput) {
++                            lockSettings.setKeyboardInput(enteredPin, true)
++                        }
++                        lockSettings.setDigitsOnly(enteredPin, digitsOnly)
+                         pageStack.pop()
+                     } else if (devicelock.checkCode(enteredPin)) {
+                         // OK, open change code UI query
+@@ -307,6 +330,7 @@ Page {
+                         _badPinWarning = ""
+ 
+                         if (requestSignalOnly) {
++                            lockSettings.setDigitsOnly(enteredPin, /^\d+$/.test(enteredPin))
+                             lockCodeConfirmed(enteredPin)
+                             pageStack.pop()
+                         } else {
