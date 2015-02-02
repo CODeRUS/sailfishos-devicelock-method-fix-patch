@@ -78,11 +78,11 @@ index 4353a23..492c6c1 100644
                                  devicelock.clearCode(enteredPin)
                                  devicelock.cachedPin = ""
                              })
-@@ -298,7 +317,11 @@ Page {
+@@ -298,6 +317,12 @@ Page {
                          devicelock.setCode(_confirmedPin, enteredPin)
                          devicelock.cachedPin = enteredPin
                          if (setup) lockSettings.setAutomaticLocking(enteredPin, "10")
--                        lockSettings.setCurrentIsDigitOnly(enteredPin, /^\d+$/.test(enteredPin))
++                        lockSettings.setCurrentIsDigitOnly(enteredPin, /^\d+$/.test(enteredPin))
 +                        var digitsOnly = /^\d+$/.test(enteredPin)
 +                        if (!digitsOnly && !lockSettings.keyboardInput) {
 +                            lockSettings.setKeyboardInput(enteredPin, true)

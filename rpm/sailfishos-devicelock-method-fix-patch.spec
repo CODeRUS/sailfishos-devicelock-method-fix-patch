@@ -10,13 +10,13 @@ BuildArch: noarch
 # << macros
 
 Summary:    Enable devicelock method switch
-Version:    0.0.1
+Version:    0.0.2
 Release:    1
 Group:      Qt/Qt
 License:    TODO
 Source0:    %{name}-%{version}.tar.bz2
 Requires:   patchmanager
-Requires:   jolla-settings-system = 0.2.26.1-10.38.1.jolla
+Requires:   jolla-settings-system = 0.2.28-10.41.1.jolla
 
 %description
 Proper patch enabling numeric - alphanumeric devicelock switch with no bug.
